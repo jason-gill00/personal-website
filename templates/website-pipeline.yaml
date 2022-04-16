@@ -1,0 +1,288 @@
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Personal Website cloudformation stack"
+Parameters:
+  AppName:
+    Type: String
+    Description: Name of the application.
+    MinLength: "1"
+    MaxLength: "80"
+    Default: personal-website
+    AllowedPattern: "[A-Za-z0-9-]+"
+    ConstraintDescription: Malformed input parameter. AppName must only contain upper and lower case letters, numbers, and -.
+  BuildspecFile:
+    Type: String
+    Description: buildspec for this pipeline.
+    Default: buildspec-dev.yml 
+  CodeBuildImage:
+    Type: String
+    Default: "aws/codebuild/standard:3.0"
+    Description: Image used for CodeBuild project.
+  GitHubRepoName:
+    Type: String
+    Description: The GitHub repo name
+    Default: personal-website
+  GitHubRepoBranch:
+    Type: String
+    Description: The GitHub repo branch code pipelines should watch for changes on
+    Default: main
+  GitHubConnectionArn:
+    Type: String
+    Description: The AWS Codestar connection ARN that enables retrieving source code from Github
+    Default: arn:aws:codestar-connections:us-east-1:728895340622:connection/b77364d0-be3c-49fd-b96b-1664dbb491d7
+  GitHubRepoId:
+    Type: String
+    Description: The full GitHub repository Id for which the connection should retrieve code from
+    Default: 'jason-gill00/personal-website'
+Resources:
+  CodeBuildTrustRole:
+    Description: Creating service role in IAM for AWS CodeBuild
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}-codebuild-role"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [codebuild.amazonaws.com]
+          Action: sts:AssumeRole
+      Path: /
+  CodePipelineTrustRole:
+    Description: Creating service role in IAM for AWS CodePipeline
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}-codepipeline-role"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [codepipeline.amazonaws.com]
+          Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: CodePipelineCodeStareConnectionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "codestar-connections:*"
+                Resource: '*'
+  CloudFormationTrustRole:
+    Description: Creating service role in IAM for AWS CloudFormation
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AppName}-cloudformation-role"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [cloudformation.amazonaws.com]
+          Action: sts:AssumeRole
+      Path: /
+  CodeBuildRolePolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: CodeBuildTrustRole
+    Description: Setting IAM policy for the service role for AWS CodeBuild
+    Properties:
+      PolicyName: !Sub "${AppName}-code-build-role-policy"
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Action: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+          Resource: ["*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["s3:*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["sns:SendMessage"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["cloudformation:Describe*","cloudformation:List*","cloudformation:Get*","cloudformation:PreviewStackUpdate","cloudformation:ValidateTemplate",
+                  "cloudformation:CreateStack","cloudformation:UpdateStack","cloudformation:DeleteStack"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["logs:*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["iam:*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["apigateway:*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["lambda:*"]
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["ec2:*"]
+        - Action: ["iot:*"]
+          Resource: ["*"]
+          Effect: Allow
+        - Action: ["events:*"]
+          Resource: ["*"]
+          Effect: Allow                               
+      Roles: [!Ref CodeBuildTrustRole]
+  CloudFormationRolePolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: CloudFormationTrustRole
+    Description: Setting IAM policy for the service role for AWS CloudFormation
+    Properties:
+      PolicyName: !Sub "${AppName}-cloud-formation-role-policy"
+      PolicyDocument:
+        Statement:
+        - Action: ["s3:GetObject", "s3:GetObjectVersion", "s3:GetBucketVersioning"]
+          Resource: "*"
+          Effect: Allow
+        - Action: ["s3:PutObject"]
+          Resource: ["arn:aws:s3:::codepipeline*"]
+          Effect: Allow
+        - Action: ["lambda:*"]
+          Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+          Effect: Allow
+        - Action: ["apigateway:*"]
+          Resource: !Sub "arn:aws:apigateway:${AWS::Region}::*"
+          Effect: Allow
+        - Action: ["iam:GetRole", "iam:CreateRole", "iam:DeleteRole"]
+          Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}-*"
+          Effect: Allow
+        - Action: ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
+          Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${AppName}-*"
+          Effect: Allow
+        - Action: ["iam:*"]
+          Resource: ["*"]
+          Effect: Allow
+        - Action: ["iot:*"]
+          Resource: ["*"]
+          Effect: Allow
+        - Action: ["cloudformation:*"]
+          Resource: ["*"]
+          Effect: Allow
+        - Effect: Allow
+          Resource: ["*"]
+          Action: ["apigateway:GetResources"]
+        - Action: ["ec2:*"]
+          Resource: ["*"]
+          Effect: Allow  
+      Roles: [!Ref CloudFormationTrustRole]
+  CodePipelineRolePolicy:
+    Type: AWS::IAM::Policy
+    DependsOn: CodePipelineTrustRole
+    Description: Setting IAM policy for the service role for AWS CodePipeline
+    Properties:
+      PolicyName: !Sub "${AppName}-code-pipeline-role-policy"
+      PolicyDocument:
+        Statement:
+        - Action: ["s3:GetObject", "s3:GetObjectVersion", "s3:GetBucketVersioning"]
+          Resource: "*"
+          Effect: Allow
+        - Action: ["s3:PutObject"]
+          Resource: ["arn:aws:s3:::codepipeline*"]
+          Effect: Allow
+        - Action: ["codebuild:StartBuild", "codebuild:BatchGetBuilds"]
+          Resource: "*"
+          Effect: Allow
+        - Action: ["codecommit:*","cloudwatch:*", "s3:*", "sns:*", "cloudformation:*", "rds:*", "sqs:*", "iam:PassRole"]
+          Resource: "*"
+          Effect: Allow
+        - Action: ["lambda:InvokeFunction", "lambda:ListFunctions"]
+          Resource: "*"
+          Effect: Allow
+        - Action: ["ec2:*"]
+          Resource: ["*"]
+          Effect: Allow
+      Roles: [!Ref CodePipelineTrustRole]  
+  CodeBuildProject:
+    DependsOn: [S3Bucket]
+    Description: Creating AWS CodeBuild project
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Description: !Sub "Building stage for ${AppName}."
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: S3_BUCKET
+            Value: !Ref S3Bucket
+        Image: !Ref CodeBuildImage
+        Type: LINUX_CONTAINER
+      Name: !Sub "${AppName}-build"
+      ServiceRole: !GetAtt CodeBuildTrustRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: !Sub "services/${BuildspecFile}"
+      Tags:
+        - Key: app-name
+          Value: !Ref AppName
+      TimeoutInMinutes: 5
+  S3Bucket:
+    Description: Creating Amazon S3 bucket for AWS CodePipeline artifacts
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${AppName}-${AWS::AccountId}-${AWS::Region}-pipeline"
+      VersioningConfiguration:
+        Status: Enabled
+  S3ArtifactBucketPolicy:
+    DependsOn: [S3Bucket]
+    Description: Setting Amazon S3 bucket policy for AWS CodePipeline access
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Id: SSEAndSSLPolicy
+        Statement:
+        - Sid: DenyInsecureConnections
+          Effect: Deny
+          Principal: "*"
+          Action: s3:*
+          Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+          Condition:
+            Bool:
+              aws:SecureTransport: false
+  ProjectPipeline:
+    DependsOn: [S3Bucket, CodeBuildProject]
+    Description: Creating a deployment pipeline for your project in AWS CodePipeline
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub "${AppName}-pipeline"
+      RoleArn: !GetAtt CodePipelineTrustRole.Arn
+      Stages:
+      - Name: Source
+        Actions:
+        - Name: source-github
+          InputArtifacts: []
+          ActionTypeId:
+            Version: "1"
+            Category: Source
+            Owner: AWS
+            Provider: "CodeStarSourceConnection"
+          OutputArtifacts:
+          - Name: !Sub "${AppName}-SourceGithubArtifact"
+          Configuration:
+            ConnectionArn: !Ref GitHubConnectionArn
+            FullRepositoryId: !Ref GitHubRepoId
+            BranchName: !Ref GitHubRepoBranch
+          RunOrder: 1
+      - Name: Build
+        Actions:
+        - Name: build-from-source
+          InputArtifacts:
+          - Name: !Sub "${AppName}-SourceGithubArtifact"
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: "1"
+            Provider: CodeBuild
+          OutputArtifacts:
+          - Name: !Sub "${AppName}-BuildArtifact"
+          Configuration:
+            ProjectName: !Sub "${AppName}-build"
+          RunOrder: 1
+      ArtifactStore:
+        Type: S3
+        Location: !Ref S3Bucket
