@@ -1,0 +1,41 @@
+service: cryp-services
+
+plugins:
+  - serverless-offline
+  - serverless-iam-roles-per-function
+  - serverless-plugin-stage-variables
+  - serverless-dotenv-plugin
+  - serverless-plugin-canary-deployments
+custom:
+  dotenv:
+    basePath: ./config/
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: prod
+  region: ${env:REGION}
+  memorySize: 1024
+  tracing: true
+  environment:
+    SLACK_URL: ${env:SLACK_URL}
+  apiGateway:
+    disableDefaultEndpoint: true
+functions:
+  crypSlackPipelineEvent:
+    tags:
+      PROJECT: cryp
+    handler: tools/slack/index.handler
+    #reservedConcurrency: 2
+    timeout: 28
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - aws.codepipeline
+            detail-type:
+              - CodePipeline Stage Execution State Change
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - codepipeline:*
+        Resource: "*"
