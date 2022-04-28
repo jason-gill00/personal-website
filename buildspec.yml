@@ -10,7 +10,9 @@ containers:
                 commands:
                     - echo Installing Dependency...
                     - node -v
-                    - sudo apt-get install -y nodejs
+                    - npm install -g n
+                    - sudo n stable
+                    - sudo n latest
                     - node -v
                     - npm install -g next
                     - npm install -g typescript
