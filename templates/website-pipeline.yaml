@@ -13,7 +13,7 @@ Parameters:
   BuildspecFile:
     Type: String
     Description: buildspec for this pipeline.
-    Default: buildspec-dev.yml 
+    Default: buildspec.yml 
   CodeBuildImage:
     Type: String
     Default: "aws/codebuild/standard:3.0"
