@@ -10,6 +10,8 @@ containers:
                 commands:
                     - echo Installing Dependency...
                     - node -v
+                    - nvm install 12.22.0
+                    - node -v
                     - npm install -g next
                     - npm install -g typescript
                     - npm install
