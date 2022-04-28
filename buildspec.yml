@@ -10,8 +10,7 @@ containers:
                 commands:
                     - echo Installing Dependency...
                     - node -v
-                    - curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
-                    - nvm install 12.22.0
+                    - sudo apt-get install -y nodejs
                     - node -v
                     - npm install -g next
                     - npm install -g typescript
