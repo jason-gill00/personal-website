@@ -17,5 +17,6 @@ containers:
             during_build:
                 commands:
                     - echo Durring Build...
-                    - chmod +x serverless_deploy_dev.sh
-                    - serverless_deploy_dev.sh
+                    - npm run build
+                    # - chmod +x serverless_deploy_dev.sh
+                    # - serverless_deploy_dev.sh
