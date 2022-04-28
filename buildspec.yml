@@ -9,6 +9,7 @@ containers:
             install:
                 commands:
                     - echo Installing Dependency...
+                    - node -v
                     - npm install -g next
                     - npm install -g typescript
                     - npm install
