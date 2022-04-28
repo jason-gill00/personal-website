@@ -1,6 +1,7 @@
 cd ./services
-npm install
-next build
+# npm install
+# next build
+yarn build
 
 if grep -q 'Error' "sls_deploy_out.txt";
 then

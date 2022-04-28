@@ -8,8 +8,10 @@ containers:
         phases:
             install:
                 commands:
-                    # Upgrade AWS CLI to the latest version
-                    #- pip install --upgrade awscli
+                    - echo Installing Dependency...
+                    - cd ./services
+                    - npm install -g next
+                    - yarn
             pre_build:
                 commands:
             during_build:
