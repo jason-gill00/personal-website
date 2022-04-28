@@ -10,7 +10,7 @@ containers:
                 commands:
                     - echo Installing Dependency...
                     - node -v
-                    - npm install -g n
+                    # - npm install -g n
                     - sudo n stable
                     - sudo n latest
                     - node -v
