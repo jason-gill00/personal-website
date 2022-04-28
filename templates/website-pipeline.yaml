@@ -213,7 +213,7 @@ Resources:
       ServiceRole: !GetAtt CodeBuildTrustRole.Arn
       Source:
         Type: CODEPIPELINE
-        BuildSpec: !Sub "services/${BuildspecFile}"
+        BuildSpec: !Sub "${BuildspecFile}"
       Tags:
         - Key: app-name
           Value: !Ref AppName
