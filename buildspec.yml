@@ -9,12 +9,11 @@ containers:
             install:
                 commands:
                     - echo Installing Dependency...
-                    - cd ./services
                     - npm install -g next
                     - yarn
             pre_build:
                 commands:
             during_build:
                 commands:
-                    - chmod +x services/serverless_deploy_dev.sh
-                    - services/serverless_deploy_dev.sh
+                    - chmod +x serverless_deploy_dev.sh
+                    - serverless_deploy_dev.sh

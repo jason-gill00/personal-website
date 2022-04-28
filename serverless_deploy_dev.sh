@@ -1,4 +1,3 @@
-cd ./services
 # npm install
 # next build
 yarn build
